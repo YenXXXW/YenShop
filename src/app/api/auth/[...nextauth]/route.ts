@@ -8,7 +8,7 @@ import { Adapter } from "next-auth/adapters";
 import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 
-export const authOption: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma as PrismaClient) as Adapter,
   providers: [
     GoogleProvider({
@@ -16,15 +16,12 @@ export const authOption: NextAuthOptions = {
       clientSecret: env.GOOGLE_CLIENT_SECRET,
     }),
   ],
-
   callbacks: {
-    //This triggers whenever we rerturn the session from the database
     session({ session, user }) {
       session.user.id = user.id;
       return session;
     },
   },
-
   events: {
     async signIn({ user }) {
       await mergeAnonymousCartIntoUserCart(user.id);
@@ -32,6 +29,6 @@ export const authOption: NextAuthOptions = {
   },
 };
 
-const handler = NextAuth(authOption);
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

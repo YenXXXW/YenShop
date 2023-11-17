@@ -2,7 +2,7 @@ import { Cart, CartItem, Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { cookies } from "next/dist/client/components/headers";
 import { getServerSession } from "next-auth";
-import { authOption } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export type CartWithProducts = Prisma.CartGetPayload<{
   include: { items: { include: { product: true } } };
@@ -18,7 +18,7 @@ export type ShoppingCart = CartWithProducts & {
 };
 
 export async function getCart(): Promise<ShoppingCart | null> {
-  const session = await getServerSession(authOption);
+  const session = await getServerSession(authOptions);
 
   let cart: CartWithProducts | null = null;
 
@@ -53,7 +53,7 @@ export async function getCart(): Promise<ShoppingCart | null> {
 }
 
 export async function createCart(): Promise<ShoppingCart> {
-  const session = await getServerSession(authOption);
+  const session = await getServerSession(authOptions);
 
   let newCart: Cart;
 
