@@ -4,6 +4,7 @@ import { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import React from "react";
+import { authOption } from "../api/auth/[...nextauth]/route";
 
 type Props = {};
 
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 async function addProduct(formData: FormData) {
   "use server";
 
-  const session = await getServerSession();
+  const session = await getServerSession(authOption);
 
   if (!session) {
     redirect("/api/auth/signin?callbackUrl=/add-product");
@@ -41,7 +42,7 @@ async function addProduct(formData: FormData) {
 }
 
 export default async function AddPorductPage({}: Props) {
-  const session = await getServerSession();
+  const session = await getServerSession(authOption);
 
   if (!session) {
     redirect("/api/auth/signin?callbackUrl=/add-product");
