@@ -1,8 +1,8 @@
-import { Cart, CartItem, Prisma } from "@prisma/client";
-import { prisma } from "./prisma";
-import { cookies } from "next/dist/client/components/headers";
-import { getServerSession } from "next-auth";
 import { authOptions } from "@/utils/authOptions";
+import { Cart, CartItem, Prisma } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { cookies } from "next/dist/client/components/headers";
+import { prisma } from "./prisma";
 
 export type CartWithProducts = Prisma.CartGetPayload<{
   include: { items: { include: { product: true } } };
@@ -24,9 +24,7 @@ export async function getCart(): Promise<ShoppingCart | null> {
 
   if (session) {
     cart = await prisma.cart.findFirst({
-      where: {
-        userId: session.user.id,
-      },
+      where: { userId: session.user.id },
       include: { items: { include: { product: true } } },
     });
   } else {
@@ -42,6 +40,7 @@ export async function getCart(): Promise<ShoppingCart | null> {
   if (!cart) {
     return null;
   }
+
   return {
     ...cart,
     size: cart.items.reduce((acc, item) => acc + item.quantity, 0),
@@ -59,29 +58,28 @@ export async function createCart(): Promise<ShoppingCart> {
 
   if (session) {
     newCart = await prisma.cart.create({
-      data: {
-        userId: session.user.id,
-      },
+      data: { userId: session.user.id },
     });
   } else {
     newCart = await prisma.cart.create({
       data: {},
     });
-  }
 
-  //In production this cookieID should be encrypted
-  cookies().set("localCartId", newCart.id);
+    // Note: Needs encryption + secure settings in real production app
+    cookies().set("localCartId", newCart.id);
+  }
 
   return {
     ...newCart,
+    items: [],
     size: 0,
     subtotal: 0,
-    items: [],
   };
 }
 
 export async function mergeAnonymousCartIntoUserCart(userId: string) {
   const localCartId = cookies().get("localCartId")?.value;
+
   const localCart = localCartId
     ? await prisma.cart.findUnique({
         where: { id: localCartId },
@@ -92,7 +90,7 @@ export async function mergeAnonymousCartIntoUserCart(userId: string) {
   if (!localCart) return;
 
   const userCart = await prisma.cart.findFirst({
-    where: { userId: userId },
+    where: { userId },
     include: { items: true },
   });
 
@@ -101,15 +99,21 @@ export async function mergeAnonymousCartIntoUserCart(userId: string) {
       const mergedCartItems = mergeCartItems(localCart.items, userCart.items);
 
       await tx.cartItem.deleteMany({
-        where: {
-          cartId: userCart.id,
-        },
+        where: { cartId: userCart.id },
       });
+      // This is the relation queries, we create the cart and cart collection
+      // and cartItem and cartItem collections at the same time in one operation
+      // and they will automatically be connected togehter by adding
+      // the card ids to these items
+
       await tx.cart.update({
         where: { id: userCart.id },
         data: {
           items: {
             createMany: {
+              //As we are doing the realtion query and the opration on the cart and
+              //not on the cartItems we don't have to manually
+              //add the cartId and is hanlded by the operation
               data: mergedCartItems.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
@@ -119,19 +123,11 @@ export async function mergeAnonymousCartIntoUserCart(userId: string) {
         },
       });
     } else {
-      // This is the relation queries, we create the cart and cart collection
-      // and cartItem and cartItem collections at the same time in one operation
-      // and they will automatically be connected togehter by adding
-      // the card ids to these items
-
       await tx.cart.create({
         data: {
           userId,
           items: {
             createMany: {
-              //As we are doing the realtion query and the opration on the cart and
-              //not on the cartItems we don't have to manually
-              //add the cartId and is hanlded by the operation
               data: localCart.items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
@@ -141,9 +137,11 @@ export async function mergeAnonymousCartIntoUserCart(userId: string) {
         },
       });
     }
+
     await tx.cart.delete({
       where: { id: localCart.id },
     });
+    // throw Error("Transaction failed");
     cookies().set("localCartId", "");
   });
 }
