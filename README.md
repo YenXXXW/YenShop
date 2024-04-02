@@ -1,4 +1,10 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This is a [Next.js](https://nextjs.org/) ecommerce project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+
+Users can create a shopping cart and add items into the card.
+
+Uses the OAuth(google) authentication strategy.
+
+Unauthenticated users can create annonymous shopping carts which combine with their shopping created after logging in.
 
 ## Getting Started
 
